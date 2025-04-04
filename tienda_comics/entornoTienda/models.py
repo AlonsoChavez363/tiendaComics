@@ -28,7 +28,7 @@ class Productos(Base):
     nombre = Column(String(255), nullable=False)
     descripcion = Column(TEXT, nullable=False)
     id_categoria = Column(Integer, ForeignKey("categorias.id_categoria"), nullable=True)
-    precio = Column(DECIMAL(10, 2), nullable=False)  # Cambié 'nullblade' por 'nullable'
+    precio = Column(DECIMAL(10, 2), nullable=False)
     categorias = relationship("Categorias", back_populates="productos")
 
 class Categorias(Base):
@@ -37,3 +37,11 @@ class Categorias(Base):
     nombre = Column(String(100), nullable=False)  
     descripcion = Column(TEXT, nullable=False)   
     productos = relationship("Productos", back_populates="categorias")
+
+class Proveedores(Base):
+    __tablename__ = "proveedores"
+    id_proveedor = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(255), nullable=False)
+    contacto = Column(String(255), nullable=False)
+    telefono = Column(String(20), nullable=False)
+    correo = Column(String(150), nullable=False)

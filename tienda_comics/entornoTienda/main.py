@@ -117,9 +117,9 @@ def leer_productos(db: Session = Depends(get_db)):
 
 
 #Endpoint para buscar un producto por ID
-@app.get("/producto/buscar/{id_producto}", tags=["Operaciones Productos"])
-def buscar_producto(id_producto: int, db: Session = Depends(get_db)):
-    producto = db.query(models.Productos).filter(models.Productos.id_producto == id_producto).first()
+@app.get("/producto/buscar/{nombre}", tags=["Operaciones Productos"])
+def buscar_producto(nombre: str, db: Session = Depends(get_db)):
+    producto = db.query(models.Productos).filter(models.Productos.nombre == nombre).first()
 
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
@@ -177,4 +177,76 @@ def actualizar_producto(id_producto: int, producto: ProductoCreate, db: Session 
     db.refresh(producto_existente)
 
     return JSONResponse(content=jsonable_encoder(producto_existente))
+
+################################################Proveedores##################################################################
+from pydantic import BaseModel
+
+class ProveedorCreate(BaseModel):
+    nombre: str
+    contacto: str
+    telefono: str
+    correo: str
+
+#Endpoint para ver todos los proveedores registrados
+@app.get("/proveedores", tags=["Operaciones Proveedores"])
+def leer_proveedores(db: Session = Depends(get_db)):
+    proveedores = db.query(models.Proveedores).all()
+    return JSONResponse(content=jsonable_encoder(proveedores))
+
+#Endpoint para buscar proveedore por nombre
+@app.get("/proveedor/buscar/{nombre}", tags=["Operaciones Proveedores"])
+def buscar_proveedor(nombre: str, db: Session = Depends(get_db)):
+    proveedor = db.query(models.Proveedores).filter(models.Proveedores.nombre == nombre).first()
+
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    return JSONResponse(content=jsonable_encoder(proveedor))
+
+#Endpoint para agregar un proveedor
+@app.post("/proveedores/agregar", tags=["Operaciones Proveedores"])
+def crear_proveedor(proveedor: ProveedorCreate, db: Session = Depends(get_db)):
+    nuevo_proveedor = models.Proveedores(
+        nombre=proveedor.nombre,
+        contacto=proveedor.contacto,
+        telefono=proveedor.telefono,
+        correo=proveedor.correo
+    )
+
+    db.add(nuevo_proveedor)
+    db.commit()
+    db.refresh(nuevo_proveedor)
+
+    return JSONResponse(content=jsonable_encoder(nuevo_proveedor))
+
+#Endpoint para borrar un proveedor
+@app.delete("/proveedores/borrar/{id_proveedor}", tags=["Operaciones Proveedores"])
+def eliminar_proveedor(id_proveedor: int, db: Session = Depends(get_db)):
+    proveedor = db.query(models.Proveedores).filter(models.Proveedores.id_proveedor == id_proveedor).first()
+
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    db.delete(proveedor)
+    db.commit()
+
+    return JSONResponse(content={"message": "Proveedor eliminado correctamente"})
+
+#Endpoint para actualizar un proveedor
+@app.put("/proveedores/actualizar/{id_proveedor}", tags=["Operaciones Proveedores"])
+def actualizar_proveedor(id_proveedor: int, proveedor: ProveedorCreate, db: Session = Depends(get_db)):
+    proveedor_existente = db.query(models.Proveedores).filter(models.Proveedores.id_proveedor == id_proveedor).first()
+
+    if not proveedor_existente:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+
+    proveedor_existente.nombre = proveedor.nombre
+    proveedor_existente.contacto = proveedor.contacto
+    proveedor_existente.telefono = proveedor.telefono
+    proveedor_existente.correo = proveedor.correo
+
+    db.commit()
+    db.refresh(proveedor_existente)
+
+    return JSONResponse(content=jsonable_encoder(proveedor_existente))
 
