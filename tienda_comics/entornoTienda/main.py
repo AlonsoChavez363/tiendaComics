@@ -6,6 +6,8 @@ import models
 from database import SessionLocal, engine
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
+from typing import Literal
 
 
 # Crear las tablas en la base de datos (Si no existen)
@@ -250,3 +252,154 @@ def actualizar_proveedor(id_proveedor: int, proveedor: ProveedorCreate, db: Sess
 
     return JSONResponse(content=jsonable_encoder(proveedor_existente))
 
+###########################################Pedidos al proveedor#########################################################
+class PedidosProveedorCreate(BaseModel):
+    id_proveedor: int
+    fecha_compra: datetime
+    estado: Literal["pendiente", "recibido", "cancelado"]
+
+# Ver todos los pedidos del proveedor
+@app.get("/pedidos_proveedor", tags=["Operaciones Pedidos Proveedor"])
+def leer_pedidos_proveedor(db: Session = Depends(get_db)):
+    pedidos = db.query(models.PedidosProveedor).all()
+    return JSONResponse(content=jsonable_encoder(pedidos))
+
+# Buscar pedido proveedor por ID
+@app.get("/pedidos_proveedor/buscar/{id_pedido}", tags=["Operaciones Pedidos Proveedor"])
+def buscar_pedido_proveedor(id_pedido: int, db: Session = Depends(get_db)):
+    pedido = db.query(models.PedidosProveedor).filter(models.PedidosProveedor.id_pedido == id_pedido).first()
+
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido proveedor no encontrado")
+
+    return JSONResponse(content=jsonable_encoder(pedido))
+
+#Endpoint para buscar pedidos para por nombre del proveedor
+@app.get("/pedidos_proveedor/por_nombre/{nombre_proveedor}", tags=["Operaciones Pedidos Proveedor"])
+def buscar_pedidos_por_nombre_proveedor(nombre_proveedor: str, db: Session = Depends(get_db)):
+    pedidos = (
+        db.query(models.PedidosProveedor)
+        .join(models.Proveedores)
+        .filter(models.Proveedores.nombre == nombre_proveedor)
+        .all()
+    )
+
+    if not pedidos:
+        raise HTTPException(status_code=404, detail="No se encontraron pedidos para ese proveedor")
+
+    return JSONResponse(content=jsonable_encoder(pedidos))
+
+# Agregar un pedido proveedor
+@app.post("/pedidos_proveedor/agregar", tags=["Operaciones Pedidos Proveedor"])
+def crear_pedido_proveedor(pedido: PedidosProveedorCreate, db: Session = Depends(get_db)):
+    nuevo_pedido = models.PedidosProveedor(
+        id_proveedor=pedido.id_proveedor,
+        fecha_compra=pedido.fecha_compra,
+        estado=pedido.estado
+    )
+
+    db.add(nuevo_pedido)
+    db.commit()
+    db.refresh(nuevo_pedido)
+
+    return JSONResponse(content=jsonable_encoder(nuevo_pedido))
+
+# Borrar un pedido proveedor
+@app.delete("/pedidos_proveedor/borrar/{id_pedido}", tags=["Operaciones Pedidos Proveedor"])
+def eliminar_pedido_proveedor(id_pedido: int, db: Session = Depends(get_db)):
+    pedido = db.query(models.PedidosProveedor).filter(models.PedidosProveedor.id_pedido == id_pedido).first()
+
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido proveedor no encontrado")
+
+    db.delete(pedido)
+    db.commit()
+
+    return JSONResponse(content={"message": "Pedido proveedor eliminado correctamente"})
+
+# Actualizar un pedido proveedor
+@app.put("/pedidos_proveedor/actualizar/{id_pedido}", tags=["Operaciones Pedidos Proveedor"])
+def actualizar_pedido_proveedor(id_pedido: int, pedido: PedidosProveedorCreate, db: Session = Depends(get_db)):
+    pedido_existente = db.query(models.PedidosProveedor).filter(models.PedidosProveedor.id_pedido == id_pedido).first()
+
+    if not pedido_existente:
+        raise HTTPException(status_code=404, detail="Pedido proveedor no encontrado")
+
+    pedido_existente.id_proveedor = pedido.id_proveedor
+    pedido_existente.fecha_compra = pedido.fecha_compra
+    pedido_existente.estado = pedido.estado
+
+    db.commit()
+    db.refresh(pedido_existente)
+
+    return JSONResponse(content=jsonable_encoder(pedido_existente))
+
+##################################Detalles de compras por clientes#########################################################
+class DetallesCompraCreate(BaseModel):
+    id_producto: int
+    cantidad: int
+    precio_unitario: float
+    id_clientes: Optional[int]
+
+# Ver todos los detalles de compra
+@app.get("/detalles_compra", tags=["Operaciones Detalles Compra"])
+def leer_detalles_compra(db: Session = Depends(get_db)):
+    detalles = db.query(models.Detalles_compra).all()
+    return JSONResponse(content=jsonable_encoder(detalles))
+
+# Buscar detalle de compra por ID
+@app.get("/detalles_compra/buscar/{id_detalle}", tags=["Operaciones Detalles Compra"])
+def buscar_detalle_compra(id_detalle: int, db: Session = Depends(get_db)):
+    detalle = db.query(models.Detalles_compra).filter(models.Detalles_compra.id_detalle == id_detalle).first()
+
+    if not detalle:
+        raise HTTPException(status_code=404, detail="Detalle de compra no encontrado")
+
+    return JSONResponse(content=jsonable_encoder(detalle))
+
+# Agregar un detalle de compra
+@app.post("/detalles_compra/agregar", tags=["Operaciones Detalles Compra"])
+def crear_detalle_compra(detalle: DetallesCompraCreate, db: Session = Depends(get_db)):
+    nuevo_detalle = models.Detalles_compra(
+        id_producto=detalle.id_producto,
+        cantidad=detalle.cantidad,
+        precio_unitario=detalle.precio_unitario,
+        id_clientes=detalle.id_clientes
+    )
+
+    db.add(nuevo_detalle)
+    db.commit()
+    db.refresh(nuevo_detalle)
+
+    return JSONResponse(content=jsonable_encoder(nuevo_detalle))
+
+# Borrar un detalle de compra
+@app.delete("/detalles_compra/borrar/{id_detalle}", tags=["Operaciones Detalles Compra"])
+def eliminar_detalle_compra(id_detalle: int, db: Session = Depends(get_db)):
+    detalle = db.query(models.Detalles_compra).filter(models.Detalles_compra.id_detalle == id_detalle).first()
+
+    if not detalle:
+        raise HTTPException(status_code=404, detail="Detalle de compra no encontrado")
+
+    db.delete(detalle)
+    db.commit()
+
+    return JSONResponse(content={"message": "Detalle de compra eliminado correctamente"})
+
+# Actualizar un detalle de compra
+@app.put("/detalles_compra/actualizar/{id_detalle}", tags=["Operaciones Detalles Compra"])
+def actualizar_detalle_compra(id_detalle: int, detalle: DetallesCompraCreate, db: Session = Depends(get_db)):
+    detalle_existente = db.query(models.Detalles_compra).filter(models.Detalles_compra.id_detalle == id_detalle).first()
+
+    if not detalle_existente:
+        raise HTTPException(status_code=404, detail="Detalle de compra no encontrado")
+
+    detalle_existente.id_producto = detalle.id_producto
+    detalle_existente.cantidad = detalle.cantidad
+    detalle_existente.precio_unitario = detalle.precio_unitario
+    detalle_existente.id_clientes = detalle.id_clientes
+
+    db.commit()
+    db.refresh(detalle_existente)
+
+    return JSONResponse(content=jsonable_encoder(detalle_existente))
