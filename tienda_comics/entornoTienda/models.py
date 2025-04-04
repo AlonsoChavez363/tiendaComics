@@ -61,7 +61,7 @@ class Proveedores(Base):
     pedidos = relationship("PedidosProveedor", back_populates="proveedor")
 
 class PedidosProveedor(Base):
-    __tablename__ = "pedidos_proveedor"
+    __tablename__ = "pedidos_provedor"
 
     id_pedido = Column(Integer, primary_key=True, autoincrement=True)
     id_proveedor = Column(Integer, ForeignKey("proveedores.id_proveedor"), nullable=False)
