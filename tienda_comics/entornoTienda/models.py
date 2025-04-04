@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, TEXT
+from sqlalchemy.types import DECIMAL
 from sqlalchemy.orm import relationship
 from database import Base
-
-
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -21,3 +20,20 @@ class TipoUsuario(Base):
     nombre = Column(String(100), nullable=False)
 
     usuarios = relationship("Usuario", back_populates="tipo_usuario")
+
+class Productos(Base):
+    __tablename__ = "productos"
+
+    id_producto = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(255), nullable=False)
+    descripcion = Column(TEXT, nullable=False)
+    id_categoria = Column(Integer, ForeignKey("categorias.id_categoria"), nullable=True)
+    precio = Column(DECIMAL(10, 2), nullable=False)  # Cambié 'nullblade' por 'nullable'
+    categorias = relationship("Categorias", back_populates="productos")
+
+class Categorias(Base):
+    __tablename__ = "categorias"
+    id_categoria = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False)  
+    descripcion = Column(TEXT, nullable=False)   
+    productos = relationship("Productos", back_populates="categorias")

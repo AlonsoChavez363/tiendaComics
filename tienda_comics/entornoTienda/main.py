@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 import models
 from database import SessionLocal, engine
 from pydantic import BaseModel
+from typing import Optional
 
 
 # Crear las tablas en la base de datos (Si no existen)
@@ -99,3 +100,81 @@ def actualizar_usuario(id_usuario: int, usuario: UsuarioCreate, db: Session = De
     db.refresh(usuario_existente)
 
     return JSONResponse(content=jsonable_encoder(usuario_existente))
+
+##################################################Productos###################################################################
+
+class ProductoCreate(BaseModel):
+    nombre: str
+    descripcion: str
+    id_categoria: Optional[int] = None
+    precio: float
+
+# Endpoint para obtener todos los productos
+@app.get("/productos", tags=["Operaciones Productos"])
+def leer_productos(db: Session = Depends(get_db)):
+    productos = db.query(models.Productos).all()
+    return JSONResponse(content=jsonable_encoder(productos))
+
+
+#Endpoint para buscar un producto por ID
+@app.get("/producto/buscar/{id_producto}", tags=["Operaciones Productos"])
+def buscar_producto(id_producto: int, db: Session = Depends(get_db)):
+    producto = db.query(models.Productos).filter(models.Productos.id_producto == id_producto).first()
+
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    return JSONResponse(content=jsonable_encoder(producto))
+
+
+@app.post("/productos/agregar", tags=["Operaciones Productos"])
+def crear_producto(producto: ProductoCreate, db: Session = Depends(get_db)):
+
+    nuevo_producto = models.Productos(
+        nombre=producto.nombre,
+        descripcion=producto.descripcion,
+        id_categoria=producto.id_categoria,
+        precio=producto.precio  # Se incluye el precio
+    )
+
+    db.add(nuevo_producto)
+    db.commit()
+    db.refresh(nuevo_producto)
+
+    return JSONResponse(content=jsonable_encoder(nuevo_producto))
+
+
+#Endpoint para eliminar un producto
+@app.delete("/productos/borrar/{id_producto}", tags=["Operaciones Productos"])
+def eliminar_producto(id_producto: int, db: Session = Depends(get_db)):
+    producto = db.query(models.Productos).filter(models.Productos.id_producto == id_producto).first()
+
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    db.delete(producto)
+    db.commit()
+
+    return JSONResponse(content={"message": "Producto eliminado correctamente"})
+
+
+#Endpoint para actualizar un producto
+@app.put("/productos/actualizar/{id_producto}", tags=["Operaciones Productos"])
+def actualizar_producto(id_producto: int, producto: ProductoCreate, db: Session = Depends(get_db)):
+    # Buscar el producto por ID
+    producto_existente = db.query(models.Productos).filter(models.Productos.id_producto == id_producto).first()
+
+    if not producto_existente:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    # Actualizar el producto con los nuevos valores
+    producto_existente.nombre = producto.nombre
+    producto_existente.descripcion = producto.descripcion
+    producto_existente.id_categoria = producto.id_categoria
+    producto_existente.precio = producto.precio  # Actualizar el precio
+
+    db.commit()
+    db.refresh(producto_existente)
+
+    return JSONResponse(content=jsonable_encoder(producto_existente))
+
